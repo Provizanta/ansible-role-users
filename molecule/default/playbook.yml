@@ -1,0 +1,51 @@
+---
+
+- name: Converge
+  hosts: all
+  pre_tasks:
+    - name: update apt repository
+      when: "ansible_pkg_mgr == 'apt'"
+      apt:
+        update_cache: true
+  roles:
+    - role: ansible-role-users
+      vars:
+        users_list:
+          - name: abc
+            pass: abc
+          - name: def
+            ssh_pubkey: "ecdsa-sha2-nistp521 AAAAE2VjZHNhdXNoYTItbmlzdHA1MjEB\
+            CDEIbmlzdHA1MjEAAACFBACJbg5bryhqXcYAzJdWm1NC+\
+            7XaF7SDo5pXGIDhCu2dfKV6BkeeSvA6l96f20DzleRVez\
+            ji8Swcq5LsfCuiLw1SHAAO59vK6iroMfMzJl8ZaSt1Uo41\
+            09XezVl7aIJ9bO0IamXkFXa4S65WON3c7s2WinRk2skcb\
+            miOkD55uS44vhPHNA=="
+          - name: ghi
+            pass: ghi
+            shell: /bin/sh
+          - name: jkl
+            ssh_pubkey: "ecdsa-sha2-nistp521 AAAAE2VjZHNhdXNoYTItbmlzdHA1MjEB\
+            CDEIbmlzdHA1MjEAAACFBACJbg5bryhqXcYAzJdWm1NC+\
+            7XaF7SDo5pXGIDhCu2dfKV6BkeeSvA6l96f20DzleRVez\
+            ji8Swcq5LsfCuiLw1SHAAO59vK6iroMfMzJl8ZaSt1Uo41\
+            09XezVl7aIJ9bO0IamXkFXa4S65WON3c7s2WinRk2skcb\
+            miOkD55uS44vhPHNA=="
+            groups:
+              - root
+          - name: mno
+            pass: mno
+            create_home: false
+
+  post_tasks:
+    - name: bashrc.d directory should be present
+      block:
+        - name: check file presence
+          stat:
+            path: "/home/abc/"
+          register: abc_home
+        - name: evaluate file presence
+          assert:
+            that:
+              - abc_home.stat.isdir is defined
+              - abc_home.stat.isdir
+            fail_msg: abc user home directory should be present

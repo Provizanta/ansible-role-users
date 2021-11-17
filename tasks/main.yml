@@ -1,0 +1,91 @@
+---
+
+- name: assert proper user configuration
+  loop: "{{ users_list }}"
+  assert:
+    that:
+      - item.name is defined
+      - item.pass is defined or item.ssh_pubkey is defined
+  tags: always
+
+- name: find current users
+  getent:
+    database: passwd
+
+- name: add users with password
+  become: true
+  loop: "{{ users_list | selectattr('pass', 'defined') | list }}"
+  user:
+    name: "{{ item.name }}"
+    password: "{{ item.pass | password_hash(users_password_hash) }}"
+    shell: "{{ item.shell | default(users_shell) }}"
+    groups: "{{ item.groups | default([]) }}"
+    append: true
+    create_home: "{{ item.create_home | default(users_create_home) }}"
+    home: "/home/{{ item.name }}/"
+    move_home: true
+  changed_when: "'molecule-idempotence-notest' not in ansible_skip_tags"
+
+- name: add users without password
+  become: true
+  loop: "{{ users_list | rejectattr('pass', 'defined') | list }}"
+  user:
+    name: "{{ item.name }}"
+    shell: "{{ item.shell | default(users_shell) }}"
+    groups: "{{ item.groups | default([]) }}"
+    append: true
+    create_home: "{{ item.create_home | default(users_create_home) }}"
+    home: "/home/{{ item.name }}/"
+    move_home: true
+
+- name: add authorized keys
+  become: true
+  loop: "{{ users_list | selectattr('ssh_pubkey', 'defined') | list }}"
+  authorized_key:
+    user: "{{ item.name }}"
+    state: present
+    key: "{{ item.ssh_pubkey }}"
+
+- name: remove users
+  vars:
+    desired_users: "{{ users_list | map(attribute='name') | list }}"
+  loop: "{{ getent_passwd | dict2items }}"
+  when:
+    - 1000 <= (item.value[1] | int) <= 29999
+    - item.key not in desired_users
+  user:
+    name: "{{ item.key }}"
+    state: absent
+    remove: true
+
+- name: remove authorized keys
+  become: true
+  loop: "{{ users_list
+            | selectattr('ssh_pubkey', 'undefined')
+            | map(attribute='name')
+            | list }}"
+  file:
+    path: "/home/{{ item }}/.ssh/authorized_keys"
+    state: absent
+
+- vars:
+    users_without_passwords: "{{ users_list | rejectattr('pass', 'defined') | selectattr('ssh_pubkey', 'defined') | list }}"
+  when: users_without_passwords | length > 0
+  block:
+    - name: establish sudo
+      become: true
+      package:
+        name:
+          - sudo
+        state: present
+
+    - name: allow passwordless sudo
+      become: true
+      loop: "{{ users_without_passwords | map(attribute='name') | list }}"
+      lineinfile:
+        path: "/etc/sudoers.d/{{ item }}"
+        line: "{{ item }} ALL=(ALL) NOPASSWD: ALL"
+        owner: root
+        group: root
+        mode: "u=rw,go=r"
+        create: true
