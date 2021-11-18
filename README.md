@@ -16,12 +16,12 @@ Role Variables
 These variables are defined in [defaults/main.yml](./defaults/main.yml):
 
     users_list: []
-      # - name: str
-      #   pass: str             # default(omit)
-      #   ssh_pubkey: str       # default(omit)
-      #   shell: str            # default(users_shell)
-      #   groups: list          # default([])
-      #   create_home: bool     # default(users_create_home)
+    # - name: str
+    #   pass: str             # default(omit)
+    #   ssh_pubkey: str       # default(omit)
+    #   shell: str            # default(users_shell)
+    #   groups: list          # default([])
+    #   create_home: bool     # default(users_create_home)
 
     users_password_hash: 'sha512'
 
