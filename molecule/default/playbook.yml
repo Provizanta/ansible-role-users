@@ -2,13 +2,10 @@
 
 - name: Converge
   hosts: all
-  pre_tasks:
-    - name: update apt repository
-      when: "ansible_pkg_mgr == 'apt'"
-      apt:
-        update_cache: true
-  roles:
-    - role: ansible-role-users
+  tasks:
+    - name: introduce users
+      include_role:
+        name: ansible-role-users
       vars:
         users_list:
           - name: abc
@@ -31,21 +28,79 @@
             09XezVl7aIJ9bO0IamXkFXa4S65WON3c7s2WinRk2skcb\
             miOkD55uS44vhPHNA=="
             groups:
-              - root
+              - "{{ (ansible_facts['os_family'] == 'RedHat') | ternary('wheel','sudo') }}"
           - name: mno
             pass: mno
             create_home: false
 
-  post_tasks:
-    - name: bashrc.d directory should be present
+    - name: load current users
+      getent:
+        database: passwd
+
+    - name: test | all users should be present
+      loop: ['abc', 'def', 'ghi', 'jkl', 'mno']
+      assert:
+        that: item in getent_passwd.keys()
+        fail_msg: "'{{ item }}' user should be present in the system"
+
+    - name: test | all users should be switchable   # noqa 301
+      loop: ['abc', 'def', 'ghi', 'jkl', 'mno']
+      become: true
+      become_user: "{{ item }}"
+      command: /bin/true
+
+    - name: test | groups | test by sudo    # noqa 301
+      vars:
+        ansible_become_password: jkl
+      become: true
+      become_user: jkl
+      command: sudo /bin/true
+
+    - name: test | shell is configure properly
+      assert:
+        that: getent_passwd['ghi'][5] == '/bin/sh'
+
+    - name: test | create home by default
       block:
-        - name: check file presence
+        - name: test | create home | check file presence
           stat:
             path: "/home/abc/"
           register: abc_home
-        - name: evaluate file presence
+
+        - name: test | create home | evaluate file presence
           assert:
             that:
               - abc_home.stat.isdir is defined
               - abc_home.stat.isdir
             fail_msg: abc user home directory should be present
+
+    - name: test | don't create home
+      block:
+        - name: test | don't create home | check file presence
+          stat:
+            path: "/home/mno/"
+          register: mno_home
+
+        - name: test | don't create home | evaluate file presence
+          assert:
+            that:
+              - mno_home.stat.exists
+            fail_msg: mno user home directory should not be present
+
+    - name: remove existing users
+      include_role:
+        name: ansible-role-users
+      vars:
+        users_list:
+          - name: abc
+            pass: abc
+
+    - name: load current users
+      getent:
+        database: passwd
+
+    - name: test | removed users should not be present
+      loop: ['def', 'ghi', 'jkl', 'mno']
+      assert:
+        that: not item in getent_passwd.keys()
+        fail_msg: "'{{ item }}' user should not be present in the system"
