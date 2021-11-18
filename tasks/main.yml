@@ -20,7 +20,7 @@
     password: "{{ item.pass | password_hash(users_password_hash) }}"
     shell: "{{ item.shell | default(users_shell) }}"
     groups: "{{ item.groups | default([]) }}"
-    append: true
+    append: "{{ users_append_groups }}"
     create_home: "{{ item.create_home | default(users_create_home) }}"
     home: "/home/{{ item.name }}/"
     move_home: true
@@ -33,7 +33,7 @@
     name: "{{ item.name }}"
     shell: "{{ item.shell | default(users_shell) }}"
     groups: "{{ item.groups | default([]) }}"
-    append: true
+    append: "{{ users_append_groups }}"
     create_home: "{{ item.create_home | default(users_create_home) }}"
     home: "/home/{{ item.name }}/"
     move_home: true
