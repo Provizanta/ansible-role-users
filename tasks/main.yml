@@ -12,6 +12,14 @@
   getent:
     database: passwd
 
+- name: prepare user id facts
+  set_fact:
+    _users_with_ids: "{%- set x={} -%}
+      {%- for k,v in getent_passwd.items() -%}
+      {%- set _ = x.update({k: v[1] | int}) -%}
+      {%- endfor -%}
+      {{ x }}"
+
 - name: add users with password
   become: true
   loop: "{{ users_list | selectattr('pass', 'defined') | list }}"
@@ -49,9 +57,12 @@
 - name: remove users
   vars:
     desired_users: "{{ users_list | map(attribute='name') | list }}"
-  loop: "{{ getent_passwd | dict2items }}"
+  loop: "{{ _users_with_ids
+           | dict2items
+           | selectattr('value', 'ge', 1000)
+           | selectattr('value', 'le', 29999)
+           | list }}"
   when:
-    - 1000 <= (item.value[1] | int) <= 29999
     - item.key not in desired_users
   user:
     name: "{{ item.key }}"
