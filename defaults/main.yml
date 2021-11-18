@@ -13,3 +13,5 @@ users_password_hash: 'sha512'
 users_shell: '/bin/bash/'
 
 users_create_home: true
+
+users_append_groups: false
