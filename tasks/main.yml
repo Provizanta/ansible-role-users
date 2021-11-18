@@ -68,24 +68,23 @@
     path: "/home/{{ item }}/.ssh/authorized_keys"
     state: absent
 
-- vars:
-    users_without_passwords: "{{ users_list | rejectattr('pass', 'defined') | selectattr('ssh_pubkey', 'defined') | list }}"
-  when: users_without_passwords | length > 0
-  block:
-    - name: establish sudo
-      become: true
-      package:
-        name:
-          - sudo
-        state: present
+- name: establish sudo
+  become: true
+  package:
+    name:
+      - sudo
+    state: present
 
-    - name: allow passwordless sudo
-      become: true
-      loop: "{{ users_without_passwords | map(attribute='name') | list }}"
-      lineinfile:
-        path: "/etc/sudoers.d/{{ item }}"
-        line: "{{ item }} ALL=(ALL) NOPASSWD: ALL"
-        owner: root
-        group: root
-        mode: "u=rw,go=r"
-        create: true
+- name: allow passwordless sudo
+  loop: "{{ users_list }}"
+  become: true
+  lineinfile:
+    path: "/etc/sudoers.d/{{ item.name }}"
+    line: "{{ item.name }} ALL=(ALL) NOPASSWD: ALL"
+    owner: root
+    group: root
+    mode: "ug=r,o="
+    state: "{{ users_use_passwordless_sudo and ('root' in (item.groups | default([])))
+               | ternary('present','absent') }}"
+    create: true
+    validate: "visudo -cf %s"

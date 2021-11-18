@@ -14,4 +14,6 @@ users_shell: '/bin/bash/'
 
 users_create_home: true
 
+users_use_passwordless_sudo: true
+
 users_append_groups: false
