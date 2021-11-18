@@ -1,5 +1,21 @@
 ---
 
+- name: pre-process passwords
+  set_fact:
+    users_list: "{%- set x=[] -%}
+      {%- for user in users_list -%}
+      {%-   if 'pass' in user -%}
+      {{-     x.append(user | combine({'pass': (user['pass'] | password_hash(users_password_hash))})) -}}
+      {%-   else -%}
+      {{-     x.append(user) -}}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ x }}"
+
+- name: debug
+  debug:
+    msg: "{{ users_list }}"
+
 - name: assert proper user configuration
   loop: "{{ users_list }}"
   assert:
@@ -15,8 +31,8 @@
 - name: prepare user id facts
   set_fact:
     _users_with_ids: "{%- set x={} -%}
-      {%- for k,v in getent_passwd.items() -%}
-      {%- set _ = x.update({k: v[1] | int}) -%}
+      {%- for user, v in getent_passwd.items() -%}
+      {%-   set _ = x.update({user: v[1] | int}) -%}
       {%- endfor -%}
       {{ x }}"
 
@@ -25,7 +41,7 @@
   loop: "{{ users_list | selectattr('pass', 'defined') | list }}"
   user:
     name: "{{ item.name }}"
-    password: "{{ item.pass | password_hash(users_password_hash) }}"
+    password: "{{ item.pass  }}"
     shell: "{{ item.shell | default(users_shell) }}"
     groups: "{{ item.groups | default([]) }}"
     append: "{{ users_append_groups }}"
