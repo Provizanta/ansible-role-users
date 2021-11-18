@@ -31,6 +31,8 @@ These variables are defined in [defaults/main.yml](./defaults/main.yml):
 
     users_use_passwordless_sudo: true
 
+    users_append_groups: false
+
 Dependencies
 ------------
 

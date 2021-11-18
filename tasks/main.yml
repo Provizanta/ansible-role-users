@@ -20,7 +20,7 @@
     password: "{{ item.pass | password_hash(users_password_hash) }}"
     shell: "{{ item.shell | default(users_shell) }}"
     groups: "{{ item.groups | default([]) }}"
-    append: true
+    append: "{{ users_append_groups }}"
     create_home: "{{ item.create_home | default(users_create_home) }}"
     home: "/home/{{ item.name }}/"
     move_home: true
@@ -33,7 +33,7 @@
     name: "{{ item.name }}"
     shell: "{{ item.shell | default(users_shell) }}"
     groups: "{{ item.groups | default([]) }}"
-    append: true
+    append: "{{ users_append_groups }}"
     create_home: "{{ item.create_home | default(users_create_home) }}"
     home: "/home/{{ item.name }}/"
     move_home: true
@@ -80,9 +80,11 @@
   become: true
   lineinfile:
     path: "/etc/sudoers.d/{{ item.name }}"
-    line: "{{ item }} ALL=(ALL) NOPASSWD: ALL"
+    line: "{{ item.name }} ALL=(ALL) NOPASSWD: ALL"
     owner: root
     group: root
-    mode: "u=rw,go=r"
-    state: "{{ users_use_passwordless_sudo and ('root' in (item.groups | default([]))) }}"
+    mode: "ug=r,o="
+    state: "{{ users_use_passwordless_sudo and ('root' in (item.groups | default([])))
+               | ternary('present','absent') }}"
     create: true
+    validate: "visudo -cf %s"
