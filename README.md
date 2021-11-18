@@ -29,7 +29,7 @@ These variables are defined in [defaults/main.yml](./defaults/main.yml):
 
     users_create_home: true
 
-    shell_use_color: true
+    users_use_passwordless_sudo: true
 
 Dependencies
 ------------
