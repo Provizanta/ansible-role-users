@@ -27,7 +27,7 @@ These variables are defined in [defaults/main.yml](./defaults/main.yml):
 
     users_password_hash: 'sha512'
 
-    users_shell: '/usr/bin/bash/'
+    users_shell: '/usr/bin/bash'
 
     users_create_home: true
 
