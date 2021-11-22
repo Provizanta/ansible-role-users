@@ -5,6 +5,8 @@ Ansible role: users
 
 Setup users idempotently. The current configuration is the source of truth. Any users not present will be set up, any users not present will be removed.
 
+By default at least 1 superuser has to be present inside the user list.
+
 Requirements
 ------------
 
@@ -32,6 +34,8 @@ These variables are defined in [defaults/main.yml](./defaults/main.yml):
     users_use_passwordless_sudo: true
 
     users_append_groups: false
+
+    users_require_superuser: true
 
 Dependencies
 ------------

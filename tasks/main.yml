@@ -2,7 +2,7 @@
 
 - name: pre-process passwords
   set_fact:
-    _obfuscated_users_list: "{%- set x=[] -%}
+    _obfuscated_users: "{%- set x=[] -%}
       {%- for user in users_list -%}
       {%-   if 'pass' in user -%}
       {{-     x.append(user | combine({'pass': (user['pass'] | password_hash(users_password_hash))})) -}}
@@ -13,12 +13,54 @@
       {{ x }}"
 
 - name: assert proper user configuration
-  loop: "{{ _obfuscated_users_list }}"
+  loop: "{{ _obfuscated_users }}"
   assert:
     that:
       - item.name is defined
       - item.pass is defined or item.ssh_pubkey is defined
   tags: always
+
+- name: superuser settings
+  vars:
+    _has_superuser: "{{ sudoer_group_name[ansible_facts['os_family']] in (
+                          _obfuscated_users
+                            | selectattr('groups', 'defined')
+                            | map(attribute='groups')
+                            | flatten
+                            | map('regex_replace',
+                                  '^(' + (sudoer_group_name.values() | join('|')) + ')$',
+                                  sudoer_group_name[ansible_facts['os_family']])
+                            | list) }}"
+  block:
+    - name: assert at least one superuser
+      when: users_require_superuser
+      assert:
+        that:
+          - _has_superuser
+      tags: always
+
+    - name: establish sudo
+      when: _has_superuser
+      become: true
+      package:
+        name:
+          - sudo
+        state: present
+
+    - name: establish sudo group
+      when: _has_superuser
+      become: true
+      group:
+        name: "{{ sudoer_group_name[ansible_facts['os_family']] }}"
+        state: present
+
+    - name: establish sudoers.d
+      become: true
+      file:
+        path: /etc/sudoers.d
+        state: directory
+        mode: "u=rwx,g=rx,o="
+        owner: root
 
 - name: find current users
   getent:
@@ -34,7 +76,7 @@
 
 - name: add users with password
   become: true
-  loop: "{{ _obfuscated_users_list | selectattr('pass', 'defined') | list }}"
+  loop: "{{ _obfuscated_users | selectattr('pass', 'defined') | list }}"
   user:
     name: "{{ item.name }}"
     password: "{{ item.pass  }}"
@@ -48,11 +90,15 @@
 
 - name: add users without password
   become: true
-  loop: "{{ _obfuscated_users_list | rejectattr('pass', 'defined') | list }}"
+  loop: "{{ _obfuscated_users | rejectattr('pass', 'defined') | list }}"
   user:
     name: "{{ item.name }}"
     shell: "{{ item.shell | default(users_shell) }}"
-    groups: "{{ item.groups | default([]) }}"
+    groups: "{{ item.groups | default([])
+                  | map('regex_replace',
+                        '^(' + (sudoer_group_name.values() | join('|')) + ')$',
+                        sudoer_group_name[ansible_facts['os_family']])
+                  | list }}"
     append: "{{ users_append_groups }}"
     create_home: "{{ item.create_home | default(users_create_home) }}"
     home: "/home/{{ item.name }}/"
@@ -60,20 +106,35 @@
 
 - name: add authorized keys
   become: true
-  loop: "{{ _obfuscated_users_list | selectattr('ssh_pubkey', 'defined') | list }}"
+  loop: "{{ _obfuscated_users | selectattr('ssh_pubkey', 'defined') | list }}"
   authorized_key:
     user: "{{ item.name }}"
     state: present
     key: "{{ item.ssh_pubkey }}"
 
+- name: setup passwordless sudo
+  loop: "{{ _obfuscated_users }}"
+  become: true
+  lineinfile:
+    path: "/etc/sudoers.d/passwordless_users"
+    line: "{{ item.name }} ALL=(ALL) NOPASSWD: ALL"
+    owner: root
+    group: root
+    mode: "ug=r,o="
+    state: "{{ users_use_passwordless_sudo and
+               (sudoer_group_name[ansible_facts['os_family']] in (item.groups | default([])))
+               | ternary('present','absent') }}"
+    create: true
+    validate: "visudo -cf %s"
+
 - name: remove users
   vars:
-    desired_users: "{{ _obfuscated_users_list | map(attribute='name') | list }}"
+    desired_users: "{{ _obfuscated_users | map(attribute='name') | list }}"
   loop: "{{ _users_with_ids
-           | dict2items
-           | selectattr('value', 'ge', 1000)
-           | selectattr('value', 'le', 29999)
-           | list }}"
+              | dict2items
+              | selectattr('value', 'ge', 1000)
+              | selectattr('value', 'le', 29999)
+              | list }}"
   when:
     - item.key not in desired_users
   user:
@@ -83,36 +144,10 @@
 
 - name: remove authorized keys
   become: true
-  loop: "{{ _obfuscated_users_list
-            | selectattr('ssh_pubkey', 'undefined')
-            | map(attribute='name')
-            | list }}"
+  loop: "{{ _obfuscated_users
+              | selectattr('ssh_pubkey', 'undefined')
+              | map(attribute='name')
+              | list }}"
   file:
     path: "/home/{{ item }}/.ssh/authorized_keys"
     state: absent
-
-- name: establish sudo
-  become: true
-  package:
-    name:
-      - sudo
-    state: present
-
-- name: allow passwordless sudo
-  vars:
-    _sudoer_group:
-      RedHat: wheel
-      Debian: sudo
-  loop: "{{ _obfuscated_users_list }}"
-  become: true
-  lineinfile:
-    path: "/etc/sudoers.d/{{ item.name }}"
-    line: "{{ item.name }} ALL=(ALL) NOPASSWD: ALL"
-    owner: root
-    group: root
-    mode: "ug=r,o="
-    state: "{{ users_use_passwordless_sudo and
-               (_sudoer_group[ansible_facts['os_family']] in (item.groups | default([])))
-               | ternary('present','absent') }}"
-    create: true
-    validate: "visudo -cf %s"

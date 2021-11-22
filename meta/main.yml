@@ -2,7 +2,7 @@
 
 galaxy_info:
   role_name: users
-  author: Tibor Csoka
+  author: Tibor Csóka
   description: |
     "Establish users with appropriate setup and configuration."
   company: ""

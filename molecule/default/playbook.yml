@@ -91,6 +91,7 @@
       include_role:
         name: ansible-role-users
       vars:
+        users_require_superuser: false
         users_list:
           - name: abc
             pass: abc
