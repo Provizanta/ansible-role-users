@@ -33,6 +33,8 @@ These variables are defined in [defaults/main.yml](./defaults/main.yml):
 
     users_append_groups: false
 
+    users_should_hold_superuser: true
+
 Dependencies
 ------------
 
