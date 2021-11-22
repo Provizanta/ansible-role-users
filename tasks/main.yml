@@ -77,6 +77,7 @@
 - name: add users with password
   become: true
   loop: "{{ _obfuscated_users | selectattr('pass', 'defined') | list }}"
+  when: "item.name != (ansible_env.USER | default(ansible_user))"
   user:
     name: "{{ item.name }}"
     password: "{{ item.pass  }}"
@@ -91,6 +92,7 @@
 - name: add users without password
   become: true
   loop: "{{ _obfuscated_users | rejectattr('pass', 'defined') | list }}"
+  when: "item.name != (ansible_env.USER | default(ansible_user))"
   user:
     name: "{{ item.name }}"
     shell: "{{ item.shell | default(users_shell) }}"
@@ -128,6 +130,7 @@
     validate: "visudo -cf %s"
 
 - name: remove users
+  become: true
   vars:
     desired_users: "{{ _obfuscated_users | map(attribute='name') | list }}"
   loop: "{{ _users_with_ids
@@ -136,7 +139,7 @@
               | selectattr('value', 'le', 29999)
               | list }}"
   when:
-    - item.key not in desired_users
+    - item.key not in (desired_users + [ansible_env.USER | default(ansible_user)] )
   user:
     name: "{{ item.key }}"
     state: absent
@@ -148,6 +151,7 @@
               | selectattr('ssh_pubkey', 'undefined')
               | map(attribute='name')
               | list }}"
+  when: "item != (ansible_env.USER | default(ansible_user))"
   file:
     path: "/home/{{ item }}/.ssh/authorized_keys"
     state: absent
