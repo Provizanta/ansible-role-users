@@ -10,7 +10,7 @@ users_list: []
 
 users_password_hash: 'sha512'
 
-users_shell: '/usr/bin/bash/'
+users_shell: '/usr/bin/bash'
 
 users_create_home: true
 
