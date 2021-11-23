@@ -132,16 +132,19 @@
 - name: remove users
   become: true
   vars:
-    desired_users: "{{ _obfuscated_users | map(attribute='name') | list }}"
-  loop: "{{ _users_with_ids
-              | dict2items
-              | selectattr('value', 'ge', 1000)
-              | selectattr('value', 'le', 29999)
-              | list }}"
-  when:
-    - item.key not in (desired_users + [ansible_env.USER | default(ansible_user_id)])
+    _desired_users: "{{ _obfuscated_users
+                          | map(attribute='name')
+                          | list
+                          + [ansible_env.USER | default(ansible_user_id)] }}"
+    _present_users: "{{ _users_with_ids
+                          | dict2items
+                          | selectattr('value', 'ge', 1000)
+                          | selectattr('value', 'le', 29999)
+                          | map(attribute='key')
+                          | list }}"
+  loop: "{{ _present_users | difference(_desired_users) }}"
   user:
-    name: "{{ item.key }}"
+    name: "{{ item }}"
     state: absent
     remove: true
 
