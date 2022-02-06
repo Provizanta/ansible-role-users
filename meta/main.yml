@@ -2,6 +2,7 @@
 
 galaxy_info:
   role_name: users
+  namespace: provizanta
   author: Tibor Csóka
   description: |
     "Establish users with appropriate setup and configuration."
