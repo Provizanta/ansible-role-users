@@ -18,7 +18,6 @@
     that:
       - item.name is defined
       - item.pass is defined or item.ssh_pubkey is defined
-  tags: always
 
 - name: superuser settings
   vars:
