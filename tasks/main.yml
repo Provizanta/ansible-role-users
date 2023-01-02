@@ -36,7 +36,6 @@
       assert:
         that:
           - _has_superuser
-      tags: always
 
     - name: establish sudo
       when: _has_superuser
