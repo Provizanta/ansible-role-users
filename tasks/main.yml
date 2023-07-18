@@ -5,7 +5,7 @@
     _obfuscated_users: "{%- set x=[] -%}
       {%- for user in users_list -%}
       {%-   if 'pass' in user -%}
-      {{-     x.append(user | combine({'pass': (user['pass'] | password_hash(users_password_hash))})) -}}
+      {{-     x.append(user | combine({'pass': (user['pass'] | string | password_hash(users_password_hash))})) -}}
       {%-   else -%}
       {{-     x.append(user) -}}
       {%-   endif -%}
