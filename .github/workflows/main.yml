@@ -24,7 +24,6 @@ jobs:
           - ubuntu1604
           - centos7
           - centos8
-          - debian9
           - debian10
           - fedora29
     steps:
