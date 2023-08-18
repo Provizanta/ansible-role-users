@@ -21,6 +21,7 @@ These variables are defined in [defaults/main.yml](./defaults/main.yml):
     # - name: str
     #   pass: str             # default(omit)
     #   ssh_pubkey: str       # default(omit)
+    #   ssh_pubkey_path: str  # default(omit)
     #   shell: str            # default(users_shell)
     #   groups: list          # default([])
     #   create_home: bool     # default(users_create_home)
@@ -69,6 +70,10 @@ Example Playbook
                 ji8Swcq5LsfCuiLw1SHAAO59vK6iroMfMzJl8ZaSt1Uo41\
                 09XezVl7aIJ9bO0IamXkFXa4S65WON3c7s2WinRk2skcb\
                 miOkD55uS44vhPHNA=="
+                groups:
+                  - root
+              - name: pqr
+                ssh_pubkey_path: "files/id_ed25519.pub"
                 groups:
                   - root
               - name: mno

@@ -6,6 +6,8 @@
       {%- for user in users_list -%}
       {%-   if 'pass' in user -%}
       {{-     x.append(user | combine({'pass': (user['pass'] | string | password_hash(users_password_hash))})) -}}
+      {%-   elif 'ssh_pubkey_path' in user -%}
+      {{-     x.append(user | combine({'ssh_pubkey': lookup('file', user['ssh_pubkey_path'])})) -}}
       {%-   else -%}
       {{-     x.append(user) -}}
       {%-   endif -%}
