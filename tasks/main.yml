@@ -83,7 +83,7 @@
     groups: "{{ item.groups | default([]) }}"
     append: "{{ users_append_groups }}"
     create_home: "{{ item.create_home | default(users_create_home) }}"
-    home: "/home/{{ item.name }}/"
+    # home: "/home/{{ item.name }}/"
     move_home: true
   changed_when: "'molecule-idempotence-notest' not in ansible_skip_tags"
 
@@ -101,7 +101,7 @@
                   | list }}"
     append: "{{ users_append_groups }}"
     create_home: "{{ item.create_home | default(users_create_home) }}"
-    home: "/home/{{ item.name }}/"
+    # home: "/home/{{ item.name }}/"
     move_home: true
 
 - name: add authorized keys
