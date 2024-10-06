@@ -29,6 +29,10 @@
             miOkD55uS44vhPHNA=="
             groups:
               - "{{ (ansible_facts['os_family'] == 'RedHat') | ternary('wheel','sudo') }}"
+          - name: pqr
+            ssh_pubkey_path: "files/id_ed25519.pub"
+            groups:
+              - root
           - name: mno
             pass: mno
             create_home: false
@@ -38,13 +42,13 @@
         database: passwd
 
     - name: test | all users should be present
-      loop: ['abc', 'def', 'ghi', 'jkl', 'mno']
+      loop: ['abc', 'def', 'ghi', 'jkl', 'mno', 'pqr']
       assert:
         that: item in getent_passwd.keys()
         fail_msg: "'{{ item }}' user should be present in the system"
 
     - name: test | all users should be switchable   # noqa 301
-      loop: ['abc', 'def', 'ghi', 'jkl', 'mno']
+      loop: ['abc', 'def', 'ghi', 'jkl', 'mno', 'pqr']
       become: true
       become_user: "{{ item }}"
       command: /bin/true
@@ -101,7 +105,7 @@
         database: passwd
 
     - name: test | removed users should not be present
-      loop: ['def', 'ghi', 'jkl', 'mno']
+      loop: ['def', 'ghi', 'jkl', 'mno', 'pqr']
       assert:
         that: not item in getent_passwd.keys()
         fail_msg: "'{{ item }}' user should not be present in the system"
